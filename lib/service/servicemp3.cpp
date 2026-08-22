@@ -2052,6 +2052,7 @@ void eServiceMP3::forceAudioReset()
 	{
 		g_object_set(G_OBJECT(m_gst_playbin), "current-audio", retry_audio, NULL);
 		setHDAudioNativeRetry(m_gst_playbin, -1);
+		clearBuffers();
 	}
 }
 #endif
