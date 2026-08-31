@@ -40,8 +40,6 @@ class ChoiceBox(Screen, HelpableScreen):
 			self["key_previous"] = StaticText(_("PREVIOUS"))
 			self["key_next"] = StaticText(_("NEXT"))
 
-		# Note: "title" using the "text" widget needs investigating. Why is this needed?
-		# Looks like a hack for a skin that didn't have enough space for a long title.
 		if title:
 			title = _(title)
 			if len(title) < 55 and title.find('\n') == -1:
@@ -62,7 +60,7 @@ class ChoiceBox(Screen, HelpableScreen):
 					self["text"].setText(title)
 			else:
 				self["text"].setText(title)
-		if text and not self["text"].getText():
+		elif text:
 			self["text"].setText(_(text))
 		self["description"] = Label()
 		self.list = []
