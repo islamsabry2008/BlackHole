@@ -129,7 +129,7 @@ AS_IF([test "$BOXTYPE" == "vuzero"],[AC_DEFINE(HWVUZERO, 1,[vuzero])])
 AS_IF([test "$BOXTYPE" == "vuzero4k"],[AC_DEFINE(HWVUZERO4K, 1,[vuzero4k])])
 
 dnl Software HDR detection (HEVC bitstream parser + TS recorder tap).
-dnl Enabled for VU+ 4K boxes, GB Quad 4K / Pro & UE4K, Zgemma H7 & H17Twin, which
+dnl Enabled for VU+ 4K boxes, GB Quad 4K / Pro & UE4K, Zgemma H7  Zgemma H9Twin & H17Twin, which
 dnl have capable enough SoCs and GStreamer stacks to support the detection pipeline.
 if test "$BOXTYPE" == "vuultimo4k"    -o "$BOXTYPE" == "vuduo4kse"\    
 	 -o "$BOXTYPE" == "vuduo4klite"   -o "$BOXTYPE" == "vuduo4k"   \
