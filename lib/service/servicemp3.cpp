@@ -893,7 +893,11 @@ gint hdAudioAuxSelectStream(GstElement *, GstStreamCollection *collection, GstSt
 {
 	HDAudioAuxState *state = static_cast<HDAudioAuxState *>(user_data);
 	if (!state || !stream || !(gst_stream_get_stream_type(stream) & GST_STREAM_TYPE_AUDIO))
+	{
+		eDebug("[eServiceMP3] hdAudioAuxSelectStream: rejecting non-audio stream id=%s",
+			stream ? gst_stream_get_stream_id(stream) : "(null)");
 		return 0;
+	}
 
 	int audio_ordinal = 0;
 	const guint size = gst_stream_collection_get_size(collection);
@@ -903,9 +907,16 @@ gint hdAudioAuxSelectStream(GstElement *, GstStreamCollection *collection, GstSt
 		if (!candidate || !(gst_stream_get_stream_type(candidate) & GST_STREAM_TYPE_AUDIO))
 			continue;
 		if (candidate == stream)
-			return audio_ordinal == state->audioIndex ? 1 : 0;
+		{
+			const gint result = audio_ordinal == state->audioIndex ? 1 : 0;
+			eDebug("[eServiceMP3] hdAudioAuxSelectStream: audio ordinal=%d wanted=%d id=%s -> %d",
+				audio_ordinal, state->audioIndex, gst_stream_get_stream_id(stream), result);
+			return result;
+		}
 		++audio_ordinal;
 	}
+	eDebug("[eServiceMP3] hdAudioAuxSelectStream: audio stream id=%s not found in collection (size=%u), rejecting",
+		gst_stream_get_stream_id(stream), size);
 	return 0;
 }
 
@@ -913,15 +924,21 @@ void hdAudioAuxPadAdded(GstElement *, GstPad *pad, gpointer user_data)
 {
 	HDAudioAuxState *state = static_cast<HDAudioAuxState *>(user_data);
 	if (!state || state->linked)
+	{
+		eDebug("[eServiceMP3] hdAudioAuxPadAdded: ignoring pad (state=%p already_linked=%d)",
+			(void *)state, state ? state->linked : -1);
 		return;
+	}
 
 	GstCaps *caps = gst_pad_get_current_caps(pad);
 	if (!caps)
 		caps = gst_pad_query_caps(pad, NULL);
 	const GstStructure *structure = caps && gst_caps_get_size(caps) ? gst_caps_get_structure(caps, 0) : NULL;
 	const gchar *name = structure ? gst_structure_get_name(structure) : NULL;
+	eDebug("[eServiceMP3] hdAudioAuxPadAdded: pad added, caps name=%s", name ? name : "(none)");
 	if (!name || g_strcmp0(name, "audio/x-raw"))
 	{
+		eDebug("[eServiceMP3] hdAudioAuxPadAdded: caps not audio/x-raw, ignoring this pad");
 		if (caps) gst_caps_unref(caps);
 		return;
 	}
@@ -929,6 +946,7 @@ void hdAudioAuxPadAdded(GstElement *, GstPad *pad, gpointer user_data)
 	GstElement *queue = gst_bin_get_by_name(GST_BIN(state->pipeline), "hdaudio_aux_queue");
 	GstPad *sink_pad = queue ? gst_element_get_static_pad(queue, "sink") : NULL;
 	const GstPadLinkReturn link_ret = sink_pad ? gst_pad_link(pad, sink_pad) : GST_PAD_LINK_REFUSED;
+	eDebug("[eServiceMP3] hdAudioAuxPadAdded: link result=%d (0=OK)", (int)link_ret);
 	g_mutex_lock(&state->linkMutex);
 	state->linked = link_ret == GST_PAD_LINK_OK;
 	if (state->linked)
@@ -1093,7 +1111,9 @@ bool prepareHDAudioAuxPipeline(GstElement *playbin, const gchar *uri, int audio_
 		return false;
 	}
 	GstState aux_state = GST_STATE_NULL, aux_pending = GST_STATE_VOID_PENDING;
-	gst_element_get_state(pipeline, &aux_state, &aux_pending, 2 * GST_SECOND);
+	GstStateChangeReturn wait_ret = gst_element_get_state(pipeline, &aux_state, &aux_pending, 2 * GST_SECOND);
+	eDebug("[eServiceMP3] prepareHDAudioAuxPipeline: get_state wait_ret=%d state=%d pending=%d (PAUSED=%d)",
+		(int)wait_ret, (int)aux_state, (int)aux_pending, (int)GST_STATE_PAUSED);
 	gst_element_set_locked_state(dvb_sink, TRUE);
 	return true;
 }
@@ -1145,6 +1165,7 @@ bool positionHDAudioAuxAfterStart(GstElement *playbin, gint64 position_ns)
 	}
 	const bool linked = state->linked;
 	g_mutex_unlock(&state->linkMutex);
+	eDebug("[eServiceMP3] positionHDAudioAuxAfterStart: linked=%d", (int)linked);
 	if (!linked)
 		return false;
 
@@ -4072,7 +4093,7 @@ void eServiceMP3::gstBusCall(GstMessage *msg)
 					}
 					else if (m_currentAudioStream < 0)
 					{
-						unsigned int autoaudio = 0;
+						int autoaudio = -1; // -1 = no configured-language match found; track 0 is a valid match and must not be confused with "nothing to select"
 						int autoaudio_level = 5;
 						std::string configvalue;
 						std::vector<std::string> autoaudio_languages;
@@ -4105,8 +4126,16 @@ void eServiceMP3::gstBusCall(GstMessage *msg)
 							}
 						}
 
-						if (autoaudio)
-							selectAudioStream(autoaudio);
+						/* Always select explicitly, even when no configured language
+						 * matched and we're falling back to track 0: selectAudioStream()
+						 * is what sets up TrueHD/DTS AC3 transcoding (hdAudioAuxModeForCodec)
+						 * and the passthrough-fix seek-back that prevents a video freeze
+						 * when that track first starts decoding. The previous `if (autoaudio)`
+						 * check treated index 0 as "nothing found" and skipped this call
+						 * whenever no language preference matched (or matched track 0
+						 * itself), silently leaving GStreamer's own default audio selection
+						 * in effect with none of the above ever engaging. */
+						selectAudioStream(autoaudio >= 0 ? autoaudio : 0);
 					}
 					else
 					{
