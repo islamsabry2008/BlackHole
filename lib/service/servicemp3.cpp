@@ -1804,14 +1804,15 @@ eServiceMP3::eServiceMP3(eServiceReference ref):
 		m_sourceinfo.audiotype = atAC3;
 		m_sourceinfo.is_audio = TRUE;
 	}
-	else if (strcasecmp(ext, ".aac") == 0 || strcasecmp(ext, ".adts") == 0 || strcasecmp(ext, ".aac-lc") == 0 || strcasecmp(ext, ".aaclc") == 0 || strcasecmp(ext, ".mp4a") == 0 || strcasecmp(ext, ".m4a") == 0 || strcasecmp(ext, ".mp4") == 0 || strcasecmp(ext, ".3gp") == 0)
-	{
-		m_sourceinfo.audiotype = atAAC;
-		m_sourceinfo.is_audio = TRUE;
-	}
-	else if (strcasecmp(ext, ".aache") == 0 || strcasecmp(ext, ".heaac") == 0 || strcasecmp(ext, ".he-aac") == 0 || strcasecmp(ext, ".aac-he") == 0 || strcasecmp(ext, ".adts") == 0 || strcasecmp(ext, ".aac-lc") == 0 || strcasecmp(ext, ".aaclc") == 0 || strcasecmp(ext, ".mp4a") == 0 || strcasecmp(ext, ".m4a") == 0 || strcasecmp(ext, ".mp4") == 0 || strcasecmp(ext, ".3gp") == 0 || strcasecmp(ext, ".alac") == 0)
+	else if (strcasecmp(ext, ".aache") == 0 || strcasecmp(ext, ".heaac") == 0 || strcasecmp(ext, ".he-aac") == 0 || strcasecmp(ext, ".aac-he") == 0)
 	{
 		m_sourceinfo.audiotype = atAACHE;
+		m_sourceinfo.is_audio = TRUE;
+	}
+	else if (strcasecmp(ext, ".aac") == 0 || strcasecmp(ext, ".adts") == 0 || strcasecmp(ext, ".aac-lc") == 0 || strcasecmp(ext, ".aaclc") == 0 || strcasecmp(ext, ".mp4a") == 0 || strcasecmp(ext, ".m4a") == 0 ||
+         strcasecmp(ext, ".alac") == 0)
+	{
+		m_sourceinfo.audiotype = atAAC;
 		m_sourceinfo.is_audio = TRUE;
 	}
 	else if (strcasecmp(ext, ".cda") == 0)
@@ -2142,8 +2143,6 @@ RESULT eServiceMP3::start()
 {
 	ASSERT(m_state == stIdle);
 
-#ifdef PASSTHROUGH_FIX
-	if (eConfigManager::getConfigBoolValue("config.av.passthrough_fix", false))
 	{
 		int pending = eServiceMP3PendingStopWorkers();
 		if (pending > 0)
@@ -2153,7 +2152,6 @@ RESULT eServiceMP3::start()
 			return 0;
 		}
 	}
-#endif
 
 	if (m_gst_playbin)
 	{
