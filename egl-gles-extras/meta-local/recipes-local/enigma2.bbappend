@@ -13,3 +13,4 @@ RDEPENDS:${PN}:append:openbh = " ${@bb.utils.contains("MACHINE_FEATURES", "e2egl
 # limit (--enable-egl-canvas-scaling, see configure.ac) - only for EGL machines
 # that do NOT have E2EGL_WQHD_FEATURE, i.e. that cannot take a 1440p canvas as is.
 EXTRA_OECONF:append:openbh = " ${@bb.utils.contains('MACHINE_FEATURES', 'e2egl', '' if d.getVar('E2EGL_WQHD_FEATURE') else '--enable-egl-canvas-scaling', '', d)}"
+EXTRA_OECONF:append:zgemmah9twin = " --with-egl"
