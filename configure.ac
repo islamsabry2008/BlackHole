@@ -584,6 +584,11 @@ if test "$BOXTYPE" == "sf8008" -o "$BOXTYPE" == "dagsmv200" -o "$BOXTYPE" == "gb
 	AC_DEFINE(FORCE_ALPHABLENDING_ACCELERATION, 1,[define when the framebuffer acceleration has alphablending support, but detection slow down all])
 fi
 
+if test "$BOXTYPE" = "sf8008" -o "$BOXTYPE" = "zgemmah9twin" -o "$BOXTYPE" = "h9twin"; then
+    AC_DEFINE(HAVE_EGL, 1, [Define if EGL is available])
+    AC_DEFINE(HAVE_GLES, 1, [Define if GLES is available])
+fi
+
 if test "$BOXTYPE" == "zgemmah8se" -o "$BOXTYPE" == "zgemmah11s"; then
 	AC_DEFINE(FORCE_NO_BLENDING_ACCELERATION, 1,[define when the framebuffer acceleration does not have alphablending support, though the autodetection might indicate that it does])
 fi
