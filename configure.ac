@@ -566,7 +566,7 @@ AC_SUBST([VUPL_LIBS])
 # MACHINEBUILDs actually get EGL is decided by ENABLE_E2EGL in egl-gles-extras/openbh.conf.
 hisi_mali_egl_box=no
 case "$BOXTYPE" in
-  pulse4k|pulse4kmini|sf8008|gbmv200|h8se|h9combo|h9combose|dagsmv200|multiboxpro|ustym4kpro) hisi_mali_egl_box=yes ;;
+  pulse4k|pulse4kmini|sf8008|gbmv200|h8se|h9combo|h9combose|zgemmah9twin|h9twin|dagsmv200|multiboxpro|ustym4kpro) hisi_mali_egl_box=yes ;;
 esac
 AM_CONDITIONAL(HAVE_HISI_MALI_EGL, test "x$use_egl" = "xyes" -a "x$hisi_mali_egl_box" = "xyes")
 if test "x$use_egl" = "xyes" -a "x$hisi_mali_egl_box" = "xyes"; then
