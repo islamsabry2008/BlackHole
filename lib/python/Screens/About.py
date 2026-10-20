@@ -47,15 +47,9 @@ def getLastCommitHash():
 	return getEnigmaLastCommitHash()[:7]
 
 def eglStr():
-    try:
-        # قراءة معطيات الـ EGL المدمجة بالدريفرات مباشرة
-        egl = getEGLVersionString().split(' ', 1)[0]
-        if egl:
-            return f"EGL {egl}"
-    except:
-        pass
-    # إذا كانت دالة الـ C++ مغلقة، يتم إرجاع نص ثابت للتأكيد
-    return "EGL (Mali/HiSilicon Enabled)" 
+	egl = getEGLVersionString().split(' ', 1)[0]
+	if egl:
+		return f"EGL {egl}"
 	return ""
 
 def glesStr():
