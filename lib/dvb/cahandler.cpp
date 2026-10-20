@@ -693,6 +693,14 @@ int eDVBCAHandler::unregisterService(const eServiceReferenceDVB &ref, int adapte
 						eDebug("[eDVBCAHandler] sending CMD_NOT_SELECTED for SR service (no more services)");
 						m_pending_sr_service.reset();
 					}
+
+					/* No Enigma2 CA service remains (for example after zapping to
+					 * IPTV). Some softcams do not receive/process the final
+					 * CMD_NOT_SELECTED; remove their stale infobar ECM data here.
+					 * Keep ecm.info if another CA service is registered, notably
+					 * an encrypted recording. Do not affect the CW/session state. */
+					if (services.empty())
+						::unlink("/tmp/ecm.info");
 				}
 				else
 				{
@@ -743,6 +751,11 @@ void eDVBCAHandler::serviceGone()
 		{
 			pmtCache.clear();
 		}
+
+		/* A final in-flight ECM response can recreate ecm.info shortly
+		 * after the stop. Recheck on the existing 2-second serviceLeft
+		 * timer. registerService() cancels that timer on a new service. */
+		::unlink("/tmp/ecm.info");
 	}
 }
 
