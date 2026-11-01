@@ -1212,6 +1212,11 @@ struct HDAudioSinkBin
 	std::string decoder;
 	bool truehdAC3;
 	bool dtsAC3;
+	/* set by hdAudioSinkBinArmSwitchFlush(), taken by the probe */
+	gint switchFlushArmed;
+	gint64 switchFlushNs;
+	gint64 switchFlushTime;
+	gdouble switchFlushRate;
 };
 
 GQuark hdAudioSinkBinQuark()
@@ -1375,6 +1380,76 @@ void hdAudioSinkBinRoute(HDAudioSinkBin *state, const std::string &decoder_name)
 	gst_object_unref(dvb_pad);
 }
 
+struct HDAudioSinkBinFlush
+{
+	gdouble rate;
+	gint64 position_ns;
+};
+
+/* GStreamer pool thread, for the same reason as doDeferredFlush() */
+void hdAudioSinkBinDoFlush(GstElement *pipeline, gpointer user_data)
+{
+	HDAudioSinkBinFlush *flush = static_cast<HDAudioSinkBinFlush *>(user_data);
+	if (!gst_element_seek(pipeline, flush->rate, GST_FORMAT_TIME,
+		(GstSeekFlags)(GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_KEY_UNIT),
+		GST_SEEK_TYPE_SET, flush->position_ns,
+		GST_SEEK_TYPE_NONE, GST_CLOCK_TIME_NONE))
+		eDebug("[eServiceMP3] HD audio AC3: second switch flush failed");
+}
+
+/* main thread, right after an audio switch's short flush was queued:
+ * position_ns is where that flush seeks to */
+void hdAudioSinkBinArmSwitchFlush(GstElement *playbin, gint64 position_ns, gdouble rate)
+{
+	GstElement *sink = NULL;
+	g_object_get(G_OBJECT(playbin), "audio-sink", &sink, NULL);
+	if (!sink)
+		return;
+	HDAudioSinkBin *state = static_cast<HDAudioSinkBin *>(g_object_get_qdata(G_OBJECT(sink), hdAudioSinkBinQuark()));
+	if (state)
+	{
+		state->switchFlushNs = position_ns;
+		state->switchFlushTime = g_get_monotonic_time();
+		state->switchFlushRate = rate;
+		g_atomic_int_set(&state->switchFlushArmed, 1);
+	}
+	gst_object_unref(sink);
+}
+
+/*
+ * The new track's caps normally reach the bin before the switch's short
+ * flush is queued, so dvbaudiosink changes over to the new codec and the
+ * flush then restarts it in step with the video. When a switch to a track
+ * that goes to dvbaudiosink directly only reaches the bin after that flush
+ * (once in many switches, about 200 ms late), the Ultimo4K's driver held
+ * playback for about 40 s (confirmed on device), the same wait as a switch
+ * with no flush at all. Flush once more there, at the switch position plus
+ * the time played since.
+ */
+void hdAudioSinkBinFlushAfterLateSwitch(GstElement *bin, HDAudioSinkBin *state)
+{
+	if (!g_atomic_int_compare_and_exchange(&state->switchFlushArmed, 1, 0) || !state->decoder.empty())
+		return;
+	const gint64 elapsed_us = g_get_monotonic_time() - state->switchFlushTime;
+	if (elapsed_us < 0 || elapsed_us > 2 * G_USEC_PER_SEC)
+		return;
+
+	GstElement *pipeline = GST_ELEMENT(gst_object_ref(bin));
+	GstObject *parent;
+	while ((parent = gst_object_get_parent(GST_OBJECT(pipeline))) != NULL)
+	{
+		gst_object_unref(pipeline);
+		pipeline = GST_ELEMENT(parent);
+	}
+	HDAudioSinkBinFlush *flush = g_new(HDAudioSinkBinFlush, 1);
+	flush->rate = state->switchFlushRate;
+	flush->position_ns = state->switchFlushNs + (gint64)(elapsed_us * 1000 * state->switchFlushRate);
+	eDebug("[eServiceMP3] HD audio AC3: track reached the sink %lld ms after the switch flush, flushing again",
+		(long long)(elapsed_us / 1000));
+	gst_element_call_async(pipeline, hdAudioSinkBinDoFlush, flush, (GDestroyNotify)g_free);
+	gst_object_unref(pipeline);
+}
+
 /* streaming thread: the entry identity's sink pad, before the identity sees
  * the event or query, so the relink is done before the caps go on */
 GstPadProbeReturn hdAudioSinkBinProbe(GstPad *, GstPadProbeInfo *info, gpointer user_data)
@@ -1423,6 +1498,7 @@ GstPadProbeReturn hdAudioSinkBinProbe(GstPad *, GstPadProbeInfo *info, gpointer 
 		eDebug("[eServiceMP3] HD audio AC3: transcoding through %s ! avenc_ac3", state->decoder.c_str());
 	else
 		eDebug("[eServiceMP3] HD audio AC3: track goes to dvbaudiosink directly");
+	hdAudioSinkBinFlushAfterLateSwitch(bin, state);
 	return GST_PAD_PROBE_OK;
 }
 
@@ -1469,6 +1545,7 @@ GstElement *createHDAudioSinkBin()
 	state->dvbSink = dvb_sink;
 	state->truehdAC3 = truehd_ac3;
 	state->dtsAC3 = dts_ac3;
+	state->switchFlushArmed = 0;
 	if (truehd_ac3)
 		hdAudioSinkBinMakeBranch(bin, state, "avdec_truehd");
 	if (dts_ac3)
@@ -5498,6 +5575,8 @@ int eServiceMP3::selectAudioStream(int i, bool skipAudioFix)
 					eDebug("[eServiceMP3] HD audio AC3: audio switch with short flush (audio sink bin)");
 					if (!flushNearCurrentPosition(switch_pos))
 						eDebug("[eServiceMP3] HD audio AC3: no position, switch without flush");
+					else if (switch_pos >= 0)
+						hdAudioSinkBinArmSwitchFlush(m_gst_playbin, switch_pos * 11111LL, m_currentTrickRatio);
 					return 0;
 				}
 				beginAudioSwitchPauseFlush();
