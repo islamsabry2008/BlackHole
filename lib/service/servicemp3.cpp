@@ -2818,15 +2818,14 @@ eServiceMP3::eServiceMP3(eServiceReference ref):
 		}
 		g_object_set (G_OBJECT (m_gst_playbin), "flags", flags, NULL);
 		g_object_set (G_OBJECT (m_gst_playbin), "uri", uri, NULL);
-		/* TrueHD/DTS to AC3 inside the audio sink, see createHDAudioSinkBin() */
-		if (!m_sourceinfo.is_streaming)
+		/* TrueHD/DTS to AC3 inside the audio sink, see createHDAudioSinkBin().
+		 * Streams too: selectAudioStream() keeps its own DASH and live
+		 * branches, so only seekable streams take the bin's short flush. */
+		GstElement *hdaudio_sink = createHDAudioSinkBin();
+		if (hdaudio_sink)
 		{
-			GstElement *hdaudio_sink = createHDAudioSinkBin();
-			if (hdaudio_sink)
-			{
-				g_object_set(G_OBJECT(m_gst_playbin), "audio-sink", hdaudio_sink, NULL);
-				m_hdaudio_sinkbin = true;
-			}
+			g_object_set(G_OBJECT(m_gst_playbin), "audio-sink", hdaudio_sink, NULL);
+			m_hdaudio_sinkbin = true;
 		}
 		GstElement *subsink = gst_element_factory_make("subsink", "subtitle_sink");
 		if (!subsink)
