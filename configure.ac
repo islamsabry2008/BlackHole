@@ -134,9 +134,10 @@ dnl enough SoCs and GStreamer stacks to support the detection pipeline.
 dnl Not enabled for vuduo4klite, vuultimo4k and gbquad4kpro.
 has_sw_hdr_detection=no
 if test "$MACHINEBUILD" != "gbquad4kpro" -a "$MACHINEBUILD" != "vuduo4klite" -a "$MACHINEBUILD" != "vuultimo4k" \
-	-a \( "$BOXTYPE" == "vuduo4k"  -o "$BOXTYPE" == "vuduo4kse" \
-	 -o "$BOXTYPE" == "vusolo4k"   -o "$BOXTYPE" == "vuuno4k"   \
-	 -o "$BOXTYPE" == "vuuno4kse"  -o "$BOXTYPE" == "vuzero4k"  \
+	-a \( "$BOXTYPE" == "vuduo4k"   -o "$BOXTYPE" == "vuduo4kse" \
+	 -o "$BOXTYPE" == "vusolo4k"     -o "$BOXTYPE" == "vuuno4k"   \
+	 -o "$BOXTYPE" == "vuuno4kse"     -o "$BOXTYPE" == "vuzero4k"  \
+	 -o "$BOXTYPE" == "zgemmah17twin"  -o "$BOXTYPE" == "zgemmah7"  \
 	 -o "$BOXTYPE" == "gb7252" \); then
 	has_sw_hdr_detection=yes
 	AC_DEFINE(HAS_SOFTWARE_HDR_DETECTION, 1, [Enable software HDR detection via HEVC bitstream parsing])
@@ -550,8 +551,8 @@ fi
 AC_SUBST([VUPL_CFLAGS])
 AC_SUBST([VUPL_LIBS])
 
-# ABCom's pulse4k/pulse4kmini, Octagon sf8008 and GigaBlue's gbmv200 (gbip4k/gbtrio4k/gbtrio4kpro) and 
-# Zgemma/AirDigital's h8se/h9combose/h11a and Qviart's dagsmv200 (all HiSilicon Hi3798MV200, 
+# ABCom's pulse4k/pulse4kmini, Octagon sf8008 and GigaBlue's gbmv200 (gbip4k/gbtrio4k/gbtrio4kpro) and
+# Zgemma/AirDigital's h8se/h9combose/h11a and Qviart's dagsmv200 (all HiSilicon Hi3798MV200,
 # ARM Mali-450 "Utgard" GPU) EGL backend (see lib/gdi/egl/platform/hisi) - a real EGL window
 # surface against a Mali fbdev binary driver (libMali.so, GLES 2.0 only),
 # unlike GigaBlue/VU+'s Broadcom Nexus stack above. oe-alliance-core's
