@@ -137,9 +137,12 @@ dnl enough SoCs and GStreamer stacks to support the detection pipeline.
 dnl Not enabled for vuduo4klite, vuultimo4k and gbquad4kpro.
 has_sw_hdr_detection=no
 if test "$MACHINEBUILD" != "gbquad4kpro" -a "$MACHINEBUILD" != "vuduo4klite" -a "$MACHINEBUILD" != "vuultimo4k" \
-	-a \( "$BOXTYPE" == "vuduo4k"  -o "$BOXTYPE" == "vuduo4kse" \
-	 -o "$BOXTYPE" == "vusolo4k"   -o "$BOXTYPE" == "vuuno4k"   \
-	 -o "$BOXTYPE" == "vuuno4kse"  -o "$BOXTYPE" == "vuzero4k"  \
+	-a \( "$BOXTYPE" == "vuduo4k" -o "$BOXTYPE" == "vuduo4kse" \
+	 -o "$BOXTYPE" == "vusolo4k"  -o "$BOXTYPE" == "vuuno4k"   \
+	 -o "$BOXTYPE" == "vuuno4kse" -o "$BOXTYPE" == "vuzero4k"  \
+     -o "$BOXTYPE" == "h9combo" -o "$BOXTYPE" == "h9combose"  \
+     -o "$BOXTYPE" == "h9twin" -o "$BOXTYPE" == "h9twinse"  \
+	 -o "$BOXTYPE" == "h7"        -o "$BOXTYPE" == "h17"       \
 	 -o "$BOXTYPE" == "gb7252" \); then
 	has_sw_hdr_detection=yes
 	AC_DEFINE(HAS_SOFTWARE_HDR_DETECTION, 1, [Enable software HDR detection via HEVC bitstream parsing])
